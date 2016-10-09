@@ -48,21 +48,6 @@ class Index {
             $this->aData = json_decode($sData, true);
         }
 
-        if ($this->sAppPassword) {
-            if (!isset($this->aData['login']['username'])) {
-                $this->done("Username missing");
-            }
-            if (!isset($this->aData['login']['password'])) {
-                $this->done("Password missing");
-            }
-            if (!isset($this->sAppPassword[$this->aData['login']['username']])) {
-                $this->done("User missing");
-            }
-            if (!password_verify($this->aData['login']['password'], $this->sAppPassword[$this->aData['login']['username']])) {
-                $this->done("Wrong password");
-            }
-        }
-
         if (isset($this->aData['test_connection'])) {
             $this->aReturn['return'] = 1;
             // If appPassword, tell app we don't have the password, to enable password-fields
@@ -84,6 +69,21 @@ class Index {
 
         if (!$this->sDatabaseServer) {
             $this->sDatabaseServer = '127.0.0.1';
+        }
+
+        if ($this->sAppPassword) {
+            if (!isset($this->aData['login']['username'])) {
+                $this->done("Username missing");
+            }
+            if (!isset($this->aData['login']['password'])) {
+                $this->done("Password missing");
+            }
+            if (!isset($this->sAppPassword[$this->aData['login']['username']])) {
+                $this->done("User missing");
+            }
+            if (!password_verify($this->aData['login']['password'], $this->sAppPassword[$this->aData['login']['username']])) {
+                $this->done("Wrong password");
+            }
         }
 
         $this->cGnuCash = new GnuCash($this->sDatabaseServer, $this->sDatabase, $this->sUsername, $this->sPassword);
