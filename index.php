@@ -5,14 +5,6 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST');
 
 class Index {
-
-    // *** User variables ***
-    private $sUsername = '';
-    private $sPassword = '';
-    private $sDatabase = '';
-    private $sDatabaseServer = '';
-    // ***
-
     public $sVersion = '2.1.0';
 
     public $cGnuCash;
@@ -50,35 +42,24 @@ class Index {
 
         if (isset($this->aData['test_connection']) and $this->aData) {
             $this->aReturn['return'] = 1;
-            $this->aReturn['hardcoded_credentials'] = (($this->sUsername and $this->sPassword) ? 1 : 0);
-            $this->aReturn['username'] = $this->sUsername;
-            $this->aReturn['password'] = $this->sPassword ? "yes" : "";
-            $this->aReturn['database_server'] = $this->sDatabaseServer;
-            $this->aReturn['database'] = $this->sDatabase;
+            $this->aReturn['hardcoded_credentials'] = 0;
+            $this->aReturn['username'] = "";
+            $this->aReturn['password'] = "";
+            $this->aReturn['database_server'] = "";
+            $this->aReturn['database'] = "";
             $this->done();
         }
 
-        if (!$this->sUsername AND !empty($this->aData['login']['username'])) {
-            $this->sUsername = $this->aData['login']['username'];
+        // Prevent undifed index
+        $this->aData += array('login' => array());
+        $this->aData['login'] += array('username' => '', 'password' => '', 'database' => '', 'database_server' => '');
+
+        // Fallback to localhost
+        if (empty($this->aData['login']['database_server'])) {
+            $this->aData['login']['database_server'] = '127.0.0.1';
         }
 
-        if (!$this->sPassword AND !empty($this->aData['login']['password'])) {
-            $this->sPassword = $this->aData['login']['password'];
-        }
-
-        if (!$this->sDatabase AND !empty($this->aData['login']['database'])) {
-            $this->sDatabase = $this->aData['login']['database'];
-        }
-
-        if (!$this->sDatabaseServer) {
-            if (!empty($this->aData['login']['database_server'])) {
-                $this->sDatabaseServer = $this->aData['login']['database_server'];
-            } else {
-                $this->sDatabaseServer = '127.0.0.1';
-            }
-        }
-
-        $this->cGnuCash = new GnuCash($this->sDatabaseServer, $this->sDatabase, $this->sUsername, $this->sPassword);
+        $this->cGnuCash = new GnuCash($this->aData['login']['database_server'], $this->aData['login']['database'], $this->aData['login']['username'], $this->aData['login']['password']);
 
         if ($this->cGnuCash->getErrorCode()) {
             $this->aReturn['message'] = "Database connection failed.<br /><b>{$this->cGnuCash->getErrorMessage()}</b>";
@@ -87,12 +68,12 @@ class Index {
         } else  if (isset($this->aData['test_credentials'])) {
             $this->aReturn['return'] = 1;
             $this->aReturn['databases'] = $this->cGnuCash->getDatabases();
-            $this->aReturn['database'] = $this->sDatabase;
+            $this->aReturn['database'] = $this->aData['login']['database'];
             $this->done();
         } else if (!$this->cGnuCash->getAccounts()) {
             $this->aReturn['message'] = 'No database specified.';
-            if ($this->sDatabase) {
-                $this->aReturn['message'] = "No accounts found, double check the database: {$this->sDatabase}";
+            if ($this->aData['login']['database']) {
+                $this->aReturn['message'] = "No accounts found, double check the database: {$this->aData['login']['database']}";
             }
             $this->done();
         }
