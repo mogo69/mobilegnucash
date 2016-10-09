@@ -23,15 +23,7 @@ class Index {
 
     public function __construct() {
         if (isset($_GET['func'])) {
-            $this->aData = array(
-                'func' => $_GET['func'],
-                'login' => array(
-                    'username' => isset($_GET['user']) ? $_GET['user'] : "",
-                    'password' => isset($_GET['pass']) ? $_GET['pass'] : "",
-                    'database' => isset($_GET['db']) ? $_GET['db'] : "",
-                    'database_server' => isset($_GET['server']) ? $_GET['server'] : "localhost",
-                ),
-            );
+            $this->aData = array('func' => $_GET['func']);
             if ($_GET['func'] == 'test_connection')
             {
                 $this->aData['test_connection'] = true;
@@ -58,24 +50,8 @@ class Index {
             $this->done();
         }
 
-        if (!$this->sUsername AND !empty($this->aData['login']['username'])) {
-            $this->sUsername = $this->aData['login']['username'];
-        }
-
-        if (!$this->sPassword AND !empty($this->aData['login']['password'])) {
-            $this->sPassword = $this->aData['login']['password'];
-        }
-
-        if (!$this->sDatabase AND !empty($this->aData['login']['database'])) {
-            $this->sDatabase = $this->aData['login']['database'];
-        }
-
         if (!$this->sDatabaseServer) {
-            if (!empty($this->aData['login']['database_server'])) {
-                $this->sDatabaseServer = $this->aData['login']['database_server'];
-            } else {
-                $this->sDatabaseServer = '127.0.0.1';
-            }
+            $this->sDatabaseServer = '127.0.0.1';
         }
 
         $this->cGnuCash = new GnuCash($this->sDatabaseServer, $this->sDatabase, $this->sUsername, $this->sPassword);
