@@ -6,7 +6,11 @@ header('Access-Control-Allow-Methods: GET, POST');
 
 class Index {
 
-    // *** User variables ***
+    // *** app credentials ***
+    private $sAppPassword = array(
+    );
+
+    // *** Database credentials ***
     private $sUsername = '';
     private $sPassword = '';
     private $sDatabase = '';
@@ -23,13 +27,17 @@ class Index {
 
     public function __construct() {
         if (isset($_GET['func'])) {
-            $this->aData = array('func' => $_GET['func']);
-            if ($_GET['func'] == 'test_connection')
-            {
+            $this->aData = array(
+                'func' => $_GET['func'],
+                'login' => array(
+                    'username' => isset($_GET['user']) ? $_GET['user'] : "",
+                    'password' => isset($_GET['pass']) ? $_GET['pass'] : "",
+                ),
+            );
+            if ($_GET['func'] == 'test_connection') {
                 $this->aData['test_connection'] = true;
             }
-            if ($_GET['func'] == 'test_credentials')
-            {
+            if ($_GET['func'] == 'test_credentials') {
                 $this->aData['test_credentials'] = true;
             }
         } else {
@@ -40,13 +48,37 @@ class Index {
             $this->aData = json_decode($sData, true);
         }
 
-        if (isset($this->aData['test_connection']) and $this->aData) {
+        if ($this->sAppPassword) {
+            if (!isset($this->aData['login']['username'])) {
+                $this->done("Username missing");
+            }
+            if (!isset($this->aData['login']['password'])) {
+                $this->done("Password missing");
+            }
+            if (!isset($this->sAppPassword[$this->aData['login']['username']])) {
+                $this->done("User missing");
+            }
+            if (!password_verify($this->aData['login']['password'], $this->sAppPassword[$this->aData['login']['username']])) {
+                $this->done("Wrong password");
+            }
+        }
+
+        if (isset($this->aData['test_connection'])) {
             $this->aReturn['return'] = 1;
-            $this->aReturn['hardcoded_credentials'] = (($this->sUsername and $this->sPassword) ? 1 : 0);
-            $this->aReturn['username'] = $this->sUsername;
-            $this->aReturn['password'] = $this->sPassword ? "yes" : "";
-            $this->aReturn['database_server'] = $this->sDatabaseServer;
-            $this->aReturn['database'] = $this->sDatabase;
+            // If appPassword, tell app we don't have the password, to enable password-fields
+            if ($this->sAppPassword) {
+                $this->aReturn['hardcoded_credentials'] = 0;
+                $this->aReturn['username'] = "";
+                $this->aReturn['password'] = "";
+                $this->aReturn['database_server'] = "";
+                $this->aReturn['database'] = "";
+            } else {
+                $this->aReturn['hardcoded_credentials'] = 1;
+                $this->aReturn['username'] = $this->sUsername;
+                $this->aReturn['password'] = $this->sPassword ? "yes" : "";
+                $this->aReturn['database_server'] = $this->sDatabaseServer;
+                $this->aReturn['database'] = $this->sDatabase;
+            }
             $this->done();
         }
 
