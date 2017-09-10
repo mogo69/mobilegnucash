@@ -1,4 +1,28 @@
 <?php
+/*TODO Someday rewrite it with use of Silex
+require('../vendor/autoload.php');
+
+$app = new Silex\Application();
+$app['debug'] = true;
+
+// Register the monolog logging service
+$app->register(new Silex\Provider\MonologServiceProvider(), array(
+  'monolog.logfile' => 'php://stderr',
+));
+
+// Register view rendering
+$app->register(new Silex\Provider\TwigServiceProvider(), array(
+    'twig.path' => __DIR__.'/views',
+));
+
+// Our web handlers
+
+$app->get('/', function() use($app) {
+  $app['monolog']->addDebug('logging output.');
+  return $app['twig']->render('index.twig');
+});
+
+$app->run();*/
 
 header('Content-Type: text/plain; charset=UTF-8');
 header('Access-Control-Allow-Origin: *');
@@ -460,11 +484,11 @@ class GnuCash {
     public function GUIDExists($sGUID) {
         $this->runQuery("USE `information_schema`;");
         $aTables = $this->runQuery("SELECT * FROM `TABLES` WHERE `TABLE_SCHEMA` LIKE :dbname;",
-                                   array(':dbname' => $this->sDbName));
+            array(':dbname' => $this->sDbName));
         $this->runQuery("USE `{$this->sDbName}`;");
         foreach ($aTables as $aTable) {
             $aGUIDs = $this->runQuery("SELECT * FROM `{$aTable['TABLE_NAME']}` WHERE `guid` LIKE :guid;",
-                                      array(':guid' => $sGUID));
+                array(':guid' => $sGUID));
             if ($aGUIDs) {
                 return true;
             }
@@ -474,7 +498,7 @@ class GnuCash {
 
     public function getAccountInfo($sAccountGUID) {
         return $this->runQuery("SELECT * FROM `accounts` WHERE `guid` = :guid ORDER BY code, name",
-                               array(':guid' => $sAccountGUID), true);
+            array(':guid' => $sAccountGUID), true);
     }
 
     public function getAccounts() {
@@ -531,24 +555,24 @@ class GnuCash {
                                 FROM `splits` LEFT JOIN `transactions` ON `transactions`.`guid` = `splits`.`tx_guid`
                                 WHERE `account_guid` = :guid
                                 ORDER BY `transactions`.`post_date` DESC;",
-                                array(':guid' => $sAccountGUID));
+            array(':guid' => $sAccountGUID));
     }
 
     public function getTransactionInfo($sGUID) {
         $aSplits = $this->runQuery("SELECT * FROM `splits` WHERE `tx_guid` = :guid;",
-                                   array(':guid' => $sGUID));
+            array(':guid' => $sGUID));
         return array($this->getTransaction($sGUID), $aSplits);
 
     }
 
     public function getTransaction($sGUID) {
         return $this->runQuery("SELECT * FROM `transactions` WHERE `guid` = :guid;",
-                               array(':guid' => $sGUID));
+            array(':guid' => $sGUID));
     }
 
     public function getSplit($sGUID) {
         return $this->runQuery("SELECT * FROM `splits` WHERE `guid` = :guid;",
-                               array(':guid' => $sGUID), true);
+            array(':guid' => $sGUID), true);
     }
 
     public function isLocked() {
@@ -641,22 +665,22 @@ class GnuCash {
         $sEnterDate = date('Y-m-d H:i:s', time());
 
         $this->runQuery("INSERT INTO `transactions` (`guid`, `currency_guid`, `num`, `post_date`, `enter_date`, `description`) VALUES (:guid, :currency_guid, :num, :post_date, :enter_date, :description);",
-                        array(':guid' => $sTransactionGUID, ':currency_guid' => $sCurrencyGUID, ':num' => '',
-                              ':post_date' => $sDate, ':enter_date' => $sEnterDate, ':description' => $sName));
+            array(':guid' => $sTransactionGUID, ':currency_guid' => $sCurrencyGUID, ':num' => '',
+                ':post_date' => $sDate, ':enter_date' => $sEnterDate, ':description' => $sName));
         $sTransactionMessage = $this->eException->getMessage();
         $aTransaction = $this->getTransaction($sTransactionGUID);
         $this->runQuery("INSERT INTO `splits` (`guid`, `tx_guid`, `account_guid`, `memo`, `action`, `reconcile_state`, `reconcile_date`, `value_num`, `value_denom`, `quantity_num`, `quantity_denom`) VALUES (:guid, :tx_guid, :account_guid, :memo, :action, :reconcile_state, :reconcile_date, :value_num, :value_denom, :quantity_num, :quantity_denom);",
-                        array(':guid' => $sSplitDebitGUID, ':tx_guid' => $sTransactionGUID, ':account_guid' => $sDebitGUID,
-                              ':memo' => $sMemo, ':reconcile_state' => 'n', ':reconcile_date' => null, ':action' => '',
-                              ':value_num' => round($fAmount * $sCurrencySCU), ':value_denom' => $sCurrencySCU,
-                              ':quantity_num' => round($fAmount * $aDebbitAccount['commodity_scu'] / $fDebbitPrice), ':quantity_denom' => $aDebbitAccount['commodity_scu']));
+            array(':guid' => $sSplitDebitGUID, ':tx_guid' => $sTransactionGUID, ':account_guid' => $sDebitGUID,
+                ':memo' => $sMemo, ':reconcile_state' => 'n', ':reconcile_date' => null, ':action' => '',
+                ':value_num' => round($fAmount * $sCurrencySCU), ':value_denom' => $sCurrencySCU,
+                ':quantity_num' => round($fAmount * $aDebbitAccount['commodity_scu'] / $fDebbitPrice), ':quantity_denom' => $aDebbitAccount['commodity_scu']));
         $sDebitMessage = $this->eException->getMessage();
         $aSplitDebit = $this->getSplit($sSplitDebitGUID);
         $this->runQuery("INSERT INTO `splits` (`guid`, `tx_guid`, `account_guid`, `memo`, `action`, `reconcile_state`, `reconcile_date`, `value_num`, `value_denom`, `quantity_num`, `quantity_denom`) VALUES (:guid, :tx_guid, :account_guid, :memo, :action, :reconcile_state, :reconcile_date, :value_num, :value_denom, :quantity_num, :quantity_denom);",
-                        array(':guid' => $sSplitCreditGUID, ':tx_guid' => $sTransactionGUID, ':account_guid' => $sCreditGUID,
-                              ':memo' => '', ':reconcile_state' => 'n', ':reconcile_date' => null, ':action' => '',
-                              ':value_num' => -1 * round($fAmount * $sCurrencySCU), ':value_denom' => $sCurrencySCU,
-                              ':quantity_num' => -1 * round($fAmount * $aCreditAccount['commodity_scu'] / $fCreditPrice), ':quantity_denom' => $aCreditAccount['commodity_scu']));
+            array(':guid' => $sSplitCreditGUID, ':tx_guid' => $sTransactionGUID, ':account_guid' => $sCreditGUID,
+                ':memo' => '', ':reconcile_state' => 'n', ':reconcile_date' => null, ':action' => '',
+                ':value_num' => -1 * round($fAmount * $sCurrencySCU), ':value_denom' => $sCurrencySCU,
+                ':quantity_num' => -1 * round($fAmount * $aCreditAccount['commodity_scu'] / $fCreditPrice), ':quantity_denom' => $aCreditAccount['commodity_scu']));
         $sCreditMessage = $this->eException->getMessage();
         $aSplitCredit = $this->getSplit($sSplitCreditGUID);
 
@@ -686,9 +710,9 @@ class GnuCash {
             return false;
         }
         $this->runQuery("DELETE FROM `transactions` WHERE `guid` = :guid;",
-                        array(':guid' => $sTransactionGUID));
+            array(':guid' => $sTransactionGUID));
         $this->runQuery("DELETE FROM `splits` WHERE `tx_guid` = :guid;",
-                        array(':guid' => $sTransactionGUID));
+            array(':guid' => $sTransactionGUID));
 
         // Verify entries were deleted.
         $aTransaction = $this->getTransactionInfo($sTransactionGUID);
@@ -701,9 +725,9 @@ class GnuCash {
     public function setReconciledStatus($sTransactionGUID, $bReconciled) {
         $sReconciled = ($bReconciled ? 'n' : 'c');
         $this->runQuery("UPDATE `splits` SET `reconcile_state` = :reconcile_state WHERE `tx_guid` = :tx_guid;",
-                        array(':reconcile_state' => $sReconciled, ':tx_guid' => $sTransactionGUID));
+            array(':reconcile_state' => $sReconciled, ':tx_guid' => $sTransactionGUID));
         $aTransactions = $this->runQuery("SELECT * FROM `splits` WHERE `tx_guid` = :tx_guid;",
-                                         array(':tx_guid' => $sTransactionGUID));
+            array(':tx_guid' => $sTransactionGUID));
         $bSet = true;
         foreach ($aTransactions as $aTransaction) {
             if ($aTransaction['reconcile_state'] != $sReconciled) {
@@ -719,14 +743,14 @@ class GnuCash {
 
     public function getChildAccounts($sParentGUID) {
         return $this->runQuery("SELECT * FROM `accounts` WHERE `parent_guid` = :parent_guid ORDER BY code, name",
-                               array(':parent_guid' => $sParentGUID));
+            array(':parent_guid' => $sParentGUID));
     }
 
     public function renameAccount($sAccountGUID, $sNewAccountName) {
         $this->runQuery("UPDATE `accounts` SET `name` = :name WHERE `guid` = :guid;",
-                        array(':name' => $sNewAccountName, ':guid' => $sAccountGUID));
+            array(':name' => $sNewAccountName, ':guid' => $sAccountGUID));
         $aAccount = $this->runQuery("SELECT * FROM `accounts` WHERE `guid` = :guid;",
-                                    array(':guid' => $sAccountGUID), true);
+            array(':guid' => $sAccountGUID), true);
         return ($sNewAccountName == $aAccount['name']);
     }
 
@@ -744,19 +768,19 @@ class GnuCash {
             $this->deleteTransaction($aTransaction['tx_guid']);
         }
         $this->runQuery("DELETE FROM `accounts` WHERE `guid` = :guid;",
-                        array(':guid' => $sAccountGUID));
+            array(':guid' => $sAccountGUID));
         return array(1, '');
         // TODO: Delete scheduled transactions and other entries that reference this account guid.
     }
 
     public function createAccount($sName, $sAccountType, $sCommodityGUID, $sParentAccountGUID) {
         $aAccountExists = $this->runQuery("SELECT * FROM `accounts` WHERE `parent_guid` = :parent_guid AND `account_name` = :account_name AND `type` = :type;",
-                                          array(':parent_guid' => $sParentAccountGUID, ':name' => $sName, ':account_type' => $sAccountType));
+            array(':parent_guid' => $sParentAccountGUID, ':name' => $sName, ':account_type' => $sAccountType));
         if ($aAccountExists) {
             return false;
         }
         $aCommodity = $this->runQuery("SELECT * FROM `commodities` WHERE `guid` = :guid;",
-                                      array(':guid' => $sCommodityGUID), true);
+            array(':guid' => $sCommodityGUID), true);
         $sAccountGUID = $this->getNewGUID();
         $this->runQuery("
             INSERT INTO `accounts` (`guid`, `name`, `account_type`, `commodity_guid`, `commodity_scu`, `non_std_scu`, `parent_guid`, `hidden`, `placeholder`)
@@ -774,42 +798,42 @@ class GnuCash {
     public function getAccountCommodity($sAccountGUID = null) {
         // get commodity for given account
         if($sAccountGUID) {
-           return $this->runQuery("SELECT commodity_guid, commodity_scu FROM accounts  WHERE guid = :guid", array(':guid' => $sAccountGUID), true);
-        // get commodity for root account
+            return $this->runQuery("SELECT commodity_guid, commodity_scu FROM accounts  WHERE guid = :guid", array(':guid' => $sAccountGUID), true);
+            // get commodity for root account
         } else {
-           return $this->runQuery("SELECT accounts.commodity_guid, accounts.commodity_scu FROM slots INNER JOIN books ON (books.guid = slots.obj_guid) INNER JOIN accounts ON (accounts.guid = books.root_account_guid) WHERE slots.name LIKE 'options'", null, true);
+            return $this->runQuery("SELECT accounts.commodity_guid, accounts.commodity_scu FROM slots INNER JOIN books ON (books.guid = slots.obj_guid) INNER JOIN accounts ON (accounts.guid = books.root_account_guid) WHERE slots.name LIKE 'options'", null, true);
         }
     }
 
     public function getCommodityPrice($sCommodityGUID, $sCurrencyGUID, $sDate) {
         if($sDate) {
-           return $this->runQuery("SELECT value_num, value_denom FROM prices WHERE commodity_guid = :commodity_guid AND currency_guid = :currency_guid ORDER BY ABS(UNIX_TIMESTAMP(:date) - UNIX_TIMESTAMP(NOW())) LIMIT 1", array(':commodity_guid' => $sCommodityGUID, 'currency_guid' => $sCurrencyGUID, ':date' => $sDate), true);
+            return $this->runQuery("SELECT value_num, value_denom FROM prices WHERE commodity_guid = :commodity_guid AND currency_guid = :currency_guid ORDER BY ABS(UNIX_TIMESTAMP(:date) - UNIX_TIMESTAMP(NOW())) LIMIT 1", array(':commodity_guid' => $sCommodityGUID, 'currency_guid' => $sCurrencyGUID, ':date' => $sDate), true);
         } else {
-           return $this->runQuery("SELECT value_num, value_denom FROM prices WHERE commodity_guid = :commodity_guid AND currency_guid = :currency_guid ORDER BY ABS(UNIX_TIMESTAMP(date) - UNIX_TIMESTAMP(NOW())) LIMIT 1", array(':commodity_guid' => $sCommodityGUID, 'currency_guid' => $sCurrencyGUID), true);
+            return $this->runQuery("SELECT value_num, value_denom FROM prices WHERE commodity_guid = :commodity_guid AND currency_guid = :currency_guid ORDER BY ABS(UNIX_TIMESTAMP(date) - UNIX_TIMESTAMP(NOW())) LIMIT 1", array(':commodity_guid' => $sCommodityGUID, 'currency_guid' => $sCurrencyGUID), true);
         }
     }
 
     public function changeAccountParent($sAccountGUID, $sParentAccountGUID) {
         $this->runQuery("UPDATE `accounts` SET `parent_guid` = :parent_guid WHERE `guid` = :guid;",
-                        array(':parent_guid' => $sParentAccountGUID, ':guid' => $sAccountGUID));
+            array(':parent_guid' => $sParentAccountGUID, ':guid' => $sAccountGUID));
         $aAccount = $this->getAccountInfo($sAccountGUID);
         return ($aAccount['parent_guid'] == $sParentAccountGUID);
     }
 
     public function changeTransactionDescription($sTransactionGUID, $sNewDescription) {
         $this->runQuery("UPDATE `transactions` SET `description` = :description WHERE `guid` = :guid;",
-                        array(':description' => $sNewDescription, ':guid' => $sTransactionGUID));
+            array(':description' => $sNewDescription, ':guid' => $sTransactionGUID));
         $aTransactionInfo = $this->runQuery("SELECT * FROM `transactions` WHERE `guid` = :guid;",
-                                            array(':guid' => $sTransactionGUID), true);
+            array(':guid' => $sTransactionGUID), true);
         return ($aTransactionInfo['description'] == $sNewDescription);
     }
 
     public function changeTransactionAmount($sTransactionGUID, $sNewAmount) {
         // TODO: How to calculate the value/quantity based on value/quantity denominators.
         $this->runQuery("UPDATE `splits` SET `value_num` = :value_num, `quantity_num` = :quantity_num WHERE `tx_guid` = :tx_guid AND `value_num` < 0;",
-                        array(':value_num' => ($sNewAmount * -1) * 100, ':quantity_num' => ($sNewAmount * -1) * 100, ':tx_guid' => $sTransactionGUID));
+            array(':value_num' => ($sNewAmount * -1) * 100, ':quantity_num' => ($sNewAmount * -1) * 100, ':tx_guid' => $sTransactionGUID));
         $this->runQuery("UPDATE `splits` SET `value_num` = :value_num, `quantity_num` = :quantity_num WHERE `tx_guid` = :tx_guid AND `value_num` > 0;",
-                        array(':value_num' => $sNewAmount * 100, ':quantity_num' => $sNewAmount * 100, ':tx_guid' => $sTransactionGUID));
+            array(':value_num' => $sNewAmount * 100, ':quantity_num' => $sNewAmount * 100, ':tx_guid' => $sTransactionGUID));
         $aTransactionInfo = $this->getTransactionInfo($sTransactionGUID);
         // TODO: Verify.
         return true;
@@ -817,9 +841,9 @@ class GnuCash {
 
     public function changeTransactionDate($sTransactionGUID, $sNewDate) {
         $this->runQuery("UPDATE `transactions` SET `post_date` = :post_date, `enter_date` = :enter_date WHERE `guid` = :guid;",
-                        array(':post_date' => $sNewDate, ':enter_date' => $sNewDate, ':guid' => $sTransactionGUID));
+            array(':post_date' => $sNewDate, ':enter_date' => $sNewDate, ':guid' => $sTransactionGUID));
         $aTransaction = $this->runQuery("SELECT * FROM `transactions` WHERE `guid` = :guid;",
-                                        array(':guid' => $sTransactionGUID), true);
+            array(':guid' => $sTransactionGUID), true);
         $oNewDate = new DateTime($sNewDate);
         $oPostDate = new DateTime($aTransaction['post_date']);
         $oEnterDate = new DateTime($aTransaction['enter_date']);
